@@ -8,15 +8,64 @@ with open('G18/G3/B.pickle', 'rb') as handle:
 with open('G18/G3/R.pickle', 'rb') as handle:
     R = pickle.load(handle)
 
-m = Model("Cargo")
+#create model
+MILP = Model('Mixed Integer Linear Problem')
 
-print(B)
-print(R)
+
+
+#Vertices and other parameters
+V = [1,2]
+
+""" Parameters
+R[i][0] #li
+R[i][i] #hi
+B[j][1][0] #Lj
+B[j][1][1] #Hj
+"""
 
 n = len(R)
 m = len(B)
 
 
+#L and H
+container_heights = []
+container_lengths = []
+for container in B:
+    container_heights.append(B[container][1][1])
+    container_lengths.append(B[container][1][0])
+
+H = max(container_heights)
+L = max(container_lengths)
+
+#decision variables geometric
+p = {}
+u = {}
+x = {}
+z = {}
+x_prime = {}
+z_prime = {}
+r = {}
+xp = {}
+zp = {}
+
+a = [1,3]
+b = [1,3]
+
+for i in range(n):
+    x[i] = MILP.addVar(vtype=GRB.CONTINUOUS)
+    z[i] = MILP.addVar(vtype=GRB.CONTINUOUS)
+    x_prime[i] = MILP.addVar(vtype=GRB.CONTINUOUS)
+    z_prime[i] = MILP.addVar(vtype=GRB.CONTINUOUS)
+    for j in range(m):
+        p[i, j] = MILP.addVar(vtype=GRB.BINARY)
+        u[j] = MILP.addVar(vtype=GRB.BINARY)
+    for aa, value_a in enumerate(a):
+        for bb, value_b in enumerate(b):
+            r[i, value_a, value_b] = MILP.addVar(vtype=GRB.BINARY)
+
+    for k in range(n):
+        xp[i, k] = MILP.addVar(vtype=GRB.BINARY)
+        zp[i, k] = MILP.addVar(vtype=GRB.BINARY)
 
 g = {}
 h = {}
@@ -33,19 +82,20 @@ E = [(i,j) for i in R for j in B]
 F = [(j,k) for j in B for k in R]
 G = [(i,k,l) for i in R for k in R for l in V]
 
-#Create model
-
-m = Model('Cargo')
 
 #Decision variables
 
 
-g = m.addVars(A,vtype=GRB.BINARY, lb=0, name="g")
-h = m.addVars(D,vtype=GRB.BINARY, lb=0, name="h")
-s = m.addVars(D,vtype=GRB.BINARY, lb=0, name="s")
-eta_1 = m.addVars(D,vtype=GRB.BINARY, lb=0, name="eta_1")
-eta_2 = m.addVars(D,vtype=GRB.BINARY, lb=0, name="eta_2")
-beta = m.addVars(G,vtype=GRB.BINARY, lb=0, name="beta")
+g = MILP.addVars(A,vtype=GRB.BINARY, lb=0, name="g")
+h = MILP.addVars(D,vtype=GRB.BINARY, lb=0, name="h")
+s = MILP.addVars(D,vtype=GRB.BINARY, lb=0, name="s")
+eta_1 = MILP.addVars(D,vtype=GRB.BINARY, lb=0, name="eta_1")
+eta_2 = MILP.addVars(D,vtype=GRB.BINARY, lb=0, name="eta_2")
+beta = MILP.addVars(G,vtype=GRB.BINARY, lb=0, name="beta")
 
+#Constraints
 
+#Constraint 27
 
+for i in R:
+    MILP.addConstr(z[i], GRB.LESS_EQUAL, (1-g[i])*H, name='C27')
