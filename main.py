@@ -11,6 +11,7 @@ with open('G18/G3/R.pickle', 'rb') as handle:
 print(B)
 print(R)
 
+
 n = len(R)  #25
 m = len(B)  #4
 print(n)
