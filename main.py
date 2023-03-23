@@ -9,3 +9,5 @@ with open('G18/G3/R.pickle', 'rb') as handle:
 
 print(B)
 print(R)
+print(B[1])
+
