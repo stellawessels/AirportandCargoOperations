@@ -86,6 +86,9 @@ for i in range(n):
         xp[i,k] = MILP.addVar(vtype=GRB.BINARY, name="xp_(%d,%d)"%(i,k))
         zp[i,k] = MILP.addVar(vtype=GRB.BINARY, name="zp_(%d,%d)"%(i,k))
 
+for j in range(m):
+    u[j] = MILP.addVar(vtype=GRB.BINARY, name="u_%d"%j)
+
 #TRYING: adding if-statement constraints for the conditional variables
 
 for i in range(n):
@@ -181,8 +184,7 @@ for i in range(n):
 
     MILP.addConstr(r[i, 3, 3], GRB.LESS_EQUAL, 1, name='Constraint 21')
 
-for j in range(m):
-    u[j] = MILP.addVar(vtype=GRB.BINARY, name="u_%d"%j)
+
 
 ##Vertical constraints
 
