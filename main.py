@@ -93,9 +93,87 @@ eta_1 = MILP.addVars(D,vtype=GRB.BINARY, lb=0, name="eta_1")
 eta_2 = MILP.addVars(D,vtype=GRB.BINARY, lb=0, name="eta_2")
 beta = MILP.addVars(G,vtype=GRB.BINARY, lb=0, name="beta")
 
+#Add mik
+#def m_ik(z_prime,z):
+
+
+
+
 #Constraints
+##Add stability constraint, fragility constraint, radioactivity constraint, perishable constraint
 
 #Constraint 27
 
 for i in R:
     MILP.addConstr(z[i], GRB.LESS_EQUAL, (1-g[i])*H, name='C27')
+
+#Constraint 28
+
+for i in R:
+    for k in R:
+        MILP.addConstr(z_prime[k] - z[i], GRB.LESS_EQUAL, abs(z_prime[k] - z[i]), name='C28')
+
+#Constraint 29
+
+for i in R:
+    for k in R:
+        MILP.addConstr(z[i] - z_prime[k], GRB.LESS_EQUAL, abs(z_prime[k] - z[i]), name='C29')
+
+#Constraint 30
+
+for i in R:
+    for k in R:
+        MILP.addConstr(abs(z_prime[k] - z[i]), GRB.LESS_EQUAL, z_prime[k] - z[i] + 2*H(1 - m[i][k]), name='C30')
+
+#Constraint 31
+
+for i in R:
+    for k in R:
+        MILP.addConstr(abs(z_prime[k] - z[i]), GRB.LESS_EQUAL, z[i] - z_prime[k] + 2*H*m[i][k], name='C31')
+
+#Constraint 32
+
+
+for i in R:
+    for k in R:
+        MILP.addConstr(h[d], GRB.LESS_EQUAL, abs(z_prime[k]-z[i]), name ="C32")
+
+#Constraint 33
+
+
+for i in R:
+    for k in R:
+        MILP.addConstr(abs(z_prime[k]-z[i]), GRB.LESS_EQUAL, h*H, name="C33")
+
+#Constraint 36
+
+
+for i in R:
+    for k in R:
+        MILP.addConstr(p[i]-p[k], GRB.LESS_EQUAL, 1 - s, name="C35")
+
+#Constraint 37
+
+
+for i in R:
+    for k in R:
+        MILP.addConstr(p[k]-p[i], GRB.LESS_EQUAL, 1 - s, name="C36")
+
+
+# Constraint 39 & 41 (edited)
+for i in R:
+    for k in R:
+        MILP.addConstr(eta_1[i,k], GRB.LESS_EQUAL, 1-beta[i,k,0]) # dit gaat fout denk
+
+for i in R:
+    for k in R:
+        MILP.addConstr(eta_3[i,k], GRB.LESS_EQUAL, 1-beta[i,k,1]) # dit gaat fout denk
+
+# Constraints 43 & 45
+for i in R:
+    for k in R:
+        MILP.addConstr(x[k], GRB.LESS_EQUAL, x[i] + eta_1[i,k] * L)
+
+for i in R:
+    for k in R:
+        MILP.addConstr(x[i], GRB.LESS_EQUAL, x[k] + eta_3[i,k] * L)
