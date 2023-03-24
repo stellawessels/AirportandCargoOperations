@@ -100,7 +100,11 @@ beta = MILP.addVars(G,vtype=GRB.BINARY, lb=0, name="beta")
 
 
 #Constraints
-##Add stability constraint, fragility constraint, radioactivity constraint, perishable constraint
+
+#Constraint 26
+
+for i in R:
+    MILP.addConstr(quicksum(quicksum(beta[l][i][k] for k in R) for l in V), GRB.GREATER_EQUAL, 2*(1-g[i]), name='C26')
 
 #Constraint 27
 
@@ -172,8 +176,18 @@ for i in R:
 # Constraints 43 & 45
 for i in R:
     for k in R:
-        MILP.addConstr(x[k], GRB.LESS_EQUAL, x[i] + eta_1[i,k] * L)
+        MILP.addConstr(x[k], GRB.LESS_EQUAL, x[i] + eta_1[i,k] * L, name='C43')
 
 for i in R:
     for k in R:
-        MILP.addConstr(x[i], GRB.LESS_EQUAL, x[k] + eta_3[i,k] * L)
+        MILP.addConstr(x[i], GRB.LESS_EQUAL, x[k] + eta_3[i,k] * L, name='C45')
+
+#Constraint 51
+    for k in R:
+        MILP.addConstr(quicksum(s[i][k] for i in R), GRB.LESS_EQUAL, n*91-f[k], name='C51')
+
+#Constraint perishable and radioactive
+    for i in R:
+        for k in R:
+            for j in B:
+                MILP.addConstr(ra[i]*per[k], GRB.LESS_EQUAL, 2 - p[i][j] - p[k][j], name='CPR')
