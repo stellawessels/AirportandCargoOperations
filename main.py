@@ -26,6 +26,18 @@ B[j][1][1] #Hj
 n = len(R)
 m = len(B)
 
+per = np.zeros(len(R))
+ra = np.zeros(len(R))
+f = np.zeros(len(R))
+
+
+for item in R:
+    if R[item][4] == 1:
+        per[item] = 1
+    if R[item][5] == 1:
+        ra[item] = 1
+    if R[item][3] == 1:
+        f[item] = 1
 
 #L and H
 container_heights = []
@@ -67,20 +79,21 @@ for i in range(n):
         xp[i, k] = MILP.addVar(vtype=GRB.BINARY)
         zp[i, k] = MILP.addVar(vtype=GRB.BINARY)
 
-g = {}
-h = {}
-s = {}
-eta_1 = {}
-eta_3 = {}
-beta = {}
+##Volgens mij zijn deze niet nodig
+# g = {}
+# h = {}
+# s = {}
+# eta_1 = {}
+# eta_3 = {}
+# beta = {}
 
 A = [i for i in R]
 B = [k for k in R]
 C = [j for j in B]
-D = [(i,k) for i in R for k in R]
-E = [(i,j) for i in R for j in B]
-F = [(j,k) for j in B for k in R]
-G = [(i,k,l) for i in R for k in R for l in V]
+D = [(i, k) for i in R for k in R]
+E = [(i, j) for i in R for j in B]
+F = [(j, k) for j in B for k in R]
+G = [(i, k, l) for i in R for k in R for l in V]
 
 
 #Decision variables
@@ -92,6 +105,8 @@ s = MILP.addVars(D,vtype=GRB.BINARY, lb=0, name="s")
 eta_1 = MILP.addVars(D,vtype=GRB.BINARY, lb=0, name="eta_1")
 eta_2 = MILP.addVars(D,vtype=GRB.BINARY, lb=0, name="eta_2")
 beta = MILP.addVars(G,vtype=GRB.BINARY, lb=0, name="beta")
+v = MILP.addVars(D, vtype=GRB.CONTINUOUS, lb =0, name="v")
+m_ik = MILP.addVars(D, vtype=GRB.BINARY, lb=0, name='m_ik')
 
 #Add mik
 #def m_ik(z_prime,z):
@@ -115,25 +130,25 @@ for i in R:
 
 for i in R:
     for k in R:
-        MILP.addConstr(z_prime[k] - z[i], GRB.LESS_EQUAL, abs(z_prime[k] - z[i]), name='C28')
+        MILP.addConstr(z_prime[k] - z[i], GRB.LESS_EQUAL, v, name='C28')
 
 #Constraint 29
 
 for i in R:
     for k in R:
-        MILP.addConstr(z[i] - z_prime[k], GRB.LESS_EQUAL, abs(z_prime[k] - z[i]), name='C29')
+        MILP.addConstr(z[i] - z_prime[k], GRB.LESS_EQUAL, v, name='C29')
 
 #Constraint 30
 
 for i in R:
     for k in R:
-        MILP.addConstr(abs(z_prime[k] - z[i]), GRB.LESS_EQUAL, z_prime[k] - z[i] + 2*H(1 - m[i][k]), name='C30')
+        MILP.addConstr(v, GRB.LESS_EQUAL, z_prime[k] - z[i] + 2*H(1 - m_ik[i][k]), name='C30')
 
 #Constraint 31
 
 for i in R:
     for k in R:
-        MILP.addConstr(abs(z_prime[k] - z[i]), GRB.LESS_EQUAL, z[i] - z_prime[k] + 2*H*m[i][k], name='C31')
+        MILP.addConstr(v, GRB.LESS_EQUAL, z[i] - z_prime[k] + 2*H*m_ik[i][k], name='C31')
 
 #Constraint 32
 
@@ -154,14 +169,14 @@ for i in R:
 
 for i in R:
     for k in R:
-        MILP.addConstr(p[i]-p[k], GRB.LESS_EQUAL, 1 - s, name="C35")
+        MILP.addConstr(p[i]-p[k], GRB.LESS_EQUAL, 1 - s[i][k], name="C35")
 
 #Constraint 37
 
 
 for i in R:
     for k in R:
-        MILP.addConstr(p[k]-p[i], GRB.LESS_EQUAL, 1 - s, name="C36")
+        MILP.addConstr(p[k]-p[i], GRB.LESS_EQUAL, 1 - s[i][k], name="C36")
 
 
 # Constraint 39 & 41 (edited)
@@ -180,7 +195,7 @@ for i in R:
 
 for i in R:
     for k in R:
-        MILP.addConstr(x[i], GRB.LESS_EQUAL, x[k] + eta_3[i,k] * L, name='C45')
+        MILP.addConstr(x[i], GRB.LESS_EQUAL, x[k] + eta_3[i][k] * L, name='C45')
 
 #Constraint 51
     for k in R:
