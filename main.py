@@ -14,7 +14,7 @@ print(R)
 
 n = len(R)  #25
 m = len(B)  #4
-print(n)
+
 a = [1,3]
 b = [1,3]
 
@@ -64,6 +64,21 @@ for i in range(n):
         xp[i,k] = MILP.addVar(vtype=GRB.BINARY, name="xp_(%d,%d)"%(i,k))
         zp[i,k] = MILP.addVar(vtype=GRB.BINARY, name="zp_(%d,%d)"%(i,k))
 
+for i in range(n):
+    for k in range(n):
+        if MILP.addConstr(x_prime[k] <= x[i], name="Trial constraint x"):
+            xp[i,k] = 1
+        else:
+            xp[i, k] = 0
+
+for i in range(n):
+    for k in range(n):
+        if MILP.addConstr(z_prime[k] <= z[i], name="Trial constraint z"):
+            zp[i,k] = 1
+        else:
+            zp[i, k] = 0
+
+
 for j in range(m):
     u[j] = MILP.addVar(vtype=GRB.BINARY, name="u_%d"%j)
 
@@ -105,6 +120,7 @@ for i in range(n):
     MILP.addConstr(r[i,3,1], GRB.LESS_EQUAL, R[i][2], name='Constraint 19')
 
     MILP.addConstr(r[i, 3, 3], GRB.LESS_EQUAL, 1, name='Constraint 21')
+
 
 MILP.update()
 MILP.write('P4RMP_LP.lp')
