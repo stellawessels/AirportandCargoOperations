@@ -9,13 +9,11 @@ with open('G18/G3/B.pickle', 'rb') as handle:
 with open('G18/G3/R.pickle', 'rb') as handle:
     R = pickle.load(handle)
 
-print(B)
-print(R)
 
-for i in range(18,25):
+for i in range(17,25):
     del R[i]
 
-print(R)
+
 ###Create model
 MILP = Model('Mixed Integer Linear Problem')
 MILP.params.LogFile='name_model.log'
@@ -322,7 +320,7 @@ for i in R:
 
 #Constraint 51
 for k in R:
-    MILP.addConstr(quicksum(s[i,k] for i in R if i != k), GRB.LESS_EQUAL, n*91-f[k], name='C51')
+    MILP.addConstr(quicksum(s[i,k] for i in R if i != k), GRB.LESS_EQUAL, n*(1-f[k]), name='C51')
 
 #Constraint perishable and radioactive
 for i in R:
@@ -335,7 +333,7 @@ for i in R:
 
 MILP.update()
 MILP.write('P4RMP_LP.lp')
-#MILP.setParam('TimeLimit', 1 * 120)
+#MILP.setParam('TimeLimit', 7200)
 #MILP.setParam('SolutionLimit', 1)
 #MILP.setParam('MIPFocus', 1)
 MILP.optimize()
