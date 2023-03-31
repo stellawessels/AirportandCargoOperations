@@ -12,6 +12,10 @@ with open('G18/G3/R.pickle', 'rb') as handle:
 print(B)
 print(R)
 
+for i in range(18,25):
+    del R[i]
+
+print(R)
 ###Create model
 MILP = Model('Mixed Integer Linear Problem')
 MILP.params.LogFile='name_model.log'
@@ -87,8 +91,9 @@ for i in range(n):
             r[i, value_a, value_b] = MILP.addVar(vtype=GRB.BINARY, name="r_(%d,%d,%d)"%(i, value_a, value_b))
 
     for k in range(n):
-        xp[i,k] = MILP.addVar(vtype=GRB.BINARY, name="xp_(%d,%d)"%(i,k))
-        zp[i,k] = MILP.addVar(vtype=GRB.BINARY, name="zp_(%d,%d)"%(i,k))
+        if i != k:
+            xp[i,k] = MILP.addVar(vtype=GRB.BINARY, name="xp_(%d,%d)"%(i,k))
+            zp[i,k] = MILP.addVar(vtype=GRB.BINARY, name="zp_(%d,%d)"%(i,k))
 
 for j in range(m):
     u[j] = MILP.addVar(vtype=GRB.BINARY, name="u_%d"%j)
@@ -125,10 +130,10 @@ m_ik = {}
 A = [i for i in R]
 BB = [k for k in R]
 C = [j for j in B]
-D = [(i, k) for i in R for k in R]
+D = [(i, k) for i in R for k in R if i != k]
 E = [(i, j) for i in R for j in B]
 F = [(j, k) for j in B for k in R]
-G = [(i, k, ver) for i in R for k in R for ver in V]
+G = [(i, k, ver) for i in R for k in R for ver in V if i != k]
 
 
 #Create decision variables
@@ -141,7 +146,7 @@ eta_3 = MILP.addVars(D,vtype=GRB.BINARY, lb=0, name="eta_2")
 beta = MILP.addVars(G,vtype=GRB.BINARY, lb=0, name="beta")
 v = MILP.addVars(D, vtype=GRB.CONTINUOUS, lb =0, name="v")
 m_ik = MILP.addVars(D, vtype=GRB.BINARY, lb=0, name='m_ik')
-
+o = MILP.addVars(D, vtype = GRB.BINARY, lb =0, name='o_ik')
 ###Create objective function
 
 
@@ -156,7 +161,7 @@ MILP.update()
 
 
 for j in range(m):
-    MILP.addConstr(quicksum(p[i,j] for i in range(n)), GRB.LESS_EQUAL, n * u[j])
+    MILP.addConstr(quicksum(p[i,j] for i in range(n)), GRB.LESS_EQUAL, n * u[j], name ='Constraint 1')
 
 for i in range(n):
     MILP.addConstr(quicksum(p[i,j] for j in range(m)), GRB.EQUAL, 1, name='Constraint 4')
@@ -199,7 +204,7 @@ for i in range(n):
 
 
 for i in R:
-    MILP.addConstr(quicksum(quicksum(beta[i,k,ver] for k in R) for ver in V), GRB.GREATER_EQUAL, 2*(1-g[i]), name='C26')
+    MILP.addConstr(quicksum(quicksum(beta[i,k,ver] for k in R if i != k) for ver in V), GRB.GREATER_EQUAL, 2*(1-g[i]), name='C26')
 
 #Constraint 27
 
@@ -250,21 +255,40 @@ for i in R:
         if i != k:
             MILP.addConstr(v[i,k], GRB.LESS_EQUAL, h[i,k]*H, name="C33")
 
-#Constraint 36
-
+# Constraint 34
 
 for i in R:
     for k in R:
         if i != k:
-            MILP.addConstr(p[i,j]-p[k,j], GRB.LESS_EQUAL, 1 - s[i,k], name="C35")
+            MILP.addConstr(o[i,k], GRB.LESS_EQUAL, xp[i,k] + xp[k,i], name="C34a")
+            MILP.addConstr(xp[i,k] + xp[k,i], GRB.LESS_EQUAL, 2*o[i,k], name="C34b")
+
+
+# Constraint 35
+
+for i in R:
+    for k in R:
+        if i != k:
+            MILP.addConstr(1-s[i,k], GRB.LESS_EQUAL, h[i,k] + o[i,k], name="C35a")
+            MILP.addConstr(h[i,k] + o[i,k], GRB.LESS_EQUAL, 2*(1-s[i,k]) , name="C35b")
+
+
+#Constraint 36
+
+for i in R:
+    for k in R:
+        for j in B:
+            if i != k:
+                MILP.addConstr(p[i,j]-p[k,j], GRB.LESS_EQUAL, 1 - s[i,k], name="C36")
 
 #Constraint 37
 
 
 for i in R:
     for k in R:
-        if i != k:
-            MILP.addConstr(p[k,j]-p[i,j], GRB.LESS_EQUAL, 1 - s[i,k], name="C36")
+        for j in B:
+            if i != k:
+                MILP.addConstr(p[k,j]-p[i,j], GRB.LESS_EQUAL, 1 - s[i,k], name="C37")
 
 #Constraint 38
 
@@ -279,12 +303,12 @@ for i in R:
 for i in R:
     for k in R:
         if i != k:
-            MILP.addConstr(eta_1[i,k], GRB.LESS_EQUAL, 1-beta[i,k,1], name="C39") # dit gaat fout denk
+            MILP.addConstr(eta_1[i,k], GRB.LESS_EQUAL, 1-beta[i,k,1], name="C39")
 
 for i in R:
     for k in R:
         if i != k:
-            MILP.addConstr(eta_3[i,k], GRB.LESS_EQUAL, 1-beta[i,k,2], name="C41") # dit gaat fout denk
+            MILP.addConstr(eta_3[i,k], GRB.LESS_EQUAL, 1-beta[i,k,2], name="C41")
 
 # Constraints 43 & 45
 for i in R:
@@ -311,7 +335,9 @@ for i in R:
 
 MILP.update()
 MILP.write('P4RMP_LP.lp')
-
+#MILP.setParam('TimeLimit', 1 * 120)
+#MILP.setParam('SolutionLimit', 1)
+#MILP.setParam('MIPFocus', 1)
 MILP.optimize()
 
 #Write solution file
