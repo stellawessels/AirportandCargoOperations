@@ -9,8 +9,14 @@ with open('G18/G3/B.pickle', 'rb') as handle:
 with open('G18/G3/R.pickle', 'rb') as handle:
     R = pickle.load(handle)
 
+
+for i in range(17,25):
+    del R[i]
+
+
 ###Create model
 MILP = Model('Mixed Integer Linear Problem')
+MILP.params.LogFile='name_model.log'
 
 ###Create parameters
 """ Parameters that should be called, not in a list
@@ -83,8 +89,9 @@ for i in range(n):
             r[i, value_a, value_b] = MILP.addVar(vtype=GRB.BINARY, name="r_(%d,%d,%d)"%(i, value_a, value_b))
 
     for k in range(n):
-        xp[i,k] = MILP.addVar(vtype=GRB.BINARY, name="xp_(%d,%d)"%(i,k))
-        zp[i,k] = MILP.addVar(vtype=GRB.BINARY, name="zp_(%d,%d)"%(i,k))
+        if i != k:
+            xp[i,k] = MILP.addVar(vtype=GRB.BINARY, name="xp_(%d,%d)"%(i,k))
+            zp[i,k] = MILP.addVar(vtype=GRB.BINARY, name="zp_(%d,%d)"%(i,k))
 
 for j in range(m):
     u[j] = MILP.addVar(vtype=GRB.BINARY, name="u_%d"%j)
@@ -121,10 +128,10 @@ m_ik = {}
 A = [i for i in R]
 BB = [k for k in R]
 C = [j for j in B]
-D = [(i, k) for i in R for k in R]
+D = [(i, k) for i in R for k in R if i != k]
 E = [(i, j) for i in R for j in B]
 F = [(j, k) for j in B for k in R]
-G = [(i, k, ver) for i in R for k in R for ver in V]
+G = [(i, k, ver) for i in R for k in R for ver in V if i != k]
 
 
 #Create decision variables
@@ -135,9 +142,9 @@ s = MILP.addVars(D,vtype=GRB.BINARY, lb=0, name="s")
 eta_1 = MILP.addVars(D,vtype=GRB.BINARY, lb=0, name="eta_1")
 eta_3 = MILP.addVars(D,vtype=GRB.BINARY, lb=0, name="eta_2")
 beta = MILP.addVars(G,vtype=GRB.BINARY, lb=0, name="beta")
-v = MILP.addVars(D, vtype=GRB.CONTINUOUS, lb =0, name="v") ##Has a special value that still needs to be added
+v = MILP.addVars(D, vtype=GRB.CONTINUOUS, lb =0, name="v")
 m_ik = MILP.addVars(D, vtype=GRB.BINARY, lb=0, name='m_ik')
-
+o = MILP.addVars(D, vtype = GRB.BINARY, lb =0, name='o_ik')
 ###Create objective function
 
 
@@ -152,7 +159,7 @@ MILP.update()
 
 
 for j in range(m):
-    MILP.addConstr(quicksum(p[i,j] for i in range(n)), GRB.LESS_EQUAL, n * u[j])
+    MILP.addConstr(quicksum(p[i,j] for i in range(n)), GRB.LESS_EQUAL, n * u[j], name ='Constraint 1')
 
 for i in range(n):
     MILP.addConstr(quicksum(p[i,j] for j in range(m)), GRB.EQUAL, 1, name='Constraint 4')
@@ -195,7 +202,7 @@ for i in range(n):
 
 
 for i in R:
-    MILP.addConstr(quicksum(quicksum(beta[i,k,ver] for k in R) for ver in V), GRB.GREATER_EQUAL, 2*(1-g[i]), name='C26')
+    MILP.addConstr(quicksum(quicksum(beta[i,k,ver] for k in R if i != k) for ver in V), GRB.GREATER_EQUAL, 2*(1-g[i]), name='C26')
 
 #Constraint 27
 
@@ -246,64 +253,92 @@ for i in R:
         if i != k:
             MILP.addConstr(v[i,k], GRB.LESS_EQUAL, h[i,k]*H, name="C33")
 
-#Constraint 36
-
+# Constraint 34
 
 for i in R:
     for k in R:
         if i != k:
-            MILP.addConstr(p[i,j]-p[k,j], GRB.LESS_EQUAL, 1 - s[i,k], name="C35")
+            MILP.addConstr(o[i,k], GRB.LESS_EQUAL, xp[i,k] + xp[k,i], name="C34a")
+            MILP.addConstr(xp[i,k] + xp[k,i], GRB.LESS_EQUAL, 2*o[i,k], name="C34b")
+
+
+# Constraint 35
+
+for i in R:
+    for k in R:
+        if i != k:
+            MILP.addConstr(1-s[i,k], GRB.LESS_EQUAL, h[i,k] + o[i,k], name="C35a")
+            MILP.addConstr(h[i,k] + o[i,k], GRB.LESS_EQUAL, 2*(1-s[i,k]) , name="C35b")
+
+
+#Constraint 36
+
+for i in R:
+    for k in R:
+        for j in B:
+            if i != k:
+                MILP.addConstr(p[i,j]-p[k,j], GRB.LESS_EQUAL, 1 - s[i,k], name="C36")
 
 #Constraint 37
 
 
 for i in R:
     for k in R:
-        if i != k:
-            MILP.addConstr(p[k,j]-p[i,j], GRB.LESS_EQUAL, 1 - s[i,k], name="C36")
+        for j in B:
+            if i != k:
+                MILP.addConstr(p[k,j]-p[i,j], GRB.LESS_EQUAL, 1 - s[i,k], name="C37")
 
+#Constraint 38
+
+for i in R:
+    for k in R:
+        for ver in V:
+            if i != k:
+                MILP.addConstr(beta[i,k,ver], GRB.LESS_EQUAL, s[i,k], name="C38")
 
 # Constraint 39 & 41 (edited)
 
 for i in R:
     for k in R:
         if i != k:
-            MILP.addConstr(eta_1[i,k], GRB.LESS_EQUAL, 1-beta[i,k,1]) # dit gaat fout denk
+            MILP.addConstr(eta_1[i,k], GRB.LESS_EQUAL, 1-beta[i,k,1], name="C39")
 
 for i in R:
     for k in R:
         if i != k:
-            MILP.addConstr(eta_3[i,k], GRB.LESS_EQUAL, 1-beta[i,k,2]) # dit gaat fout denk
+            MILP.addConstr(eta_3[i,k], GRB.LESS_EQUAL, 1-beta[i,k,2], name="C41")
 
 # Constraints 43 & 45
 for i in R:
     for k in R:
         if i != k:
             MILP.addConstr(x[k], GRB.LESS_EQUAL, x[i] + eta_1[i,k] * L, name='C43')
-
 for i in R:
     for k in R:
         if i != k:
-            MILP.addConstr(x[i], GRB.LESS_EQUAL, x[k] + eta_3[i,k] * L, name='C45')
+            MILP.addConstr(x_prime[i], GRB.LESS_EQUAL, x_prime[k] + eta_3[i,k] * L, name='C45')
 
 #Constraint 51
-    for k in R:
-        MILP.addConstr(quicksum(s[i,k] for i in R), GRB.LESS_EQUAL, n*91-f[k], name='C51')
+for k in R:
+    MILP.addConstr(quicksum(s[i,k] for i in R if i != k), GRB.LESS_EQUAL, n*(1-f[k]), name='C51')
 
 #Constraint perishable and radioactive
-    for i in R:
-        for k in R:
-            for j in B:
-                if i != k:
-                    MILP.addConstr(ra[i]*per[k], GRB.LESS_EQUAL, 2 - p[i,j] - p[k,j], name='CPR')
+for i in R:
+    for k in R:
+        for j in B:
+            if i != k:
+                MILP.addConstr(ra[i]*per[k], GRB.LESS_EQUAL, 2 - p[i,j] - p[k,j], name='CPR')
 
 ###Solve the MILP
 
 MILP.update()
 MILP.write('P4RMP_LP.lp')
-
+#MILP.setParam('TimeLimit', 7200)
+#MILP.setParam('SolutionLimit', 1)
+#MILP.setParam('MIPFocus', 1)
 MILP.optimize()
 
 #Write solution file
+
 
 MILP.write('P4RMPSolution.sol')
