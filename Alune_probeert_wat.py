@@ -284,7 +284,6 @@ for i in R:
     for k in R:
         if i != k:
             MILP.addConstr(x[k], GRB.LESS_EQUAL, x[i] + eta_1[i,k] * L, name='C43')
-
 for i in R:
     for k in R:
         if i != k:
