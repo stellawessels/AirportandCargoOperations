@@ -9,8 +9,12 @@ with open('G18/G3/B.pickle', 'rb') as handle:
 with open('G18/G3/R.pickle', 'rb') as handle:
     R = pickle.load(handle)
 
+print(B)
+print(R)
+
 ###Create model
 MILP = Model('Mixed Integer Linear Problem')
+MILP.params.LogFile='name_model.log'
 
 ###Create parameters
 """ Parameters that should be called, not in a list
@@ -268,12 +272,12 @@ for i in R:
 for i in R:
     for k in R:
         if i != k:
-            MILP.addConstr(eta_1[i,k], GRB.LESS_EQUAL, 1-beta[i,k,1]) # dit gaat fout denk
+            MILP.addConstr(eta_1[i,k], GRB.LESS_EQUAL, 1-beta[i,k,1], name="C39") # dit gaat fout denk
 
 for i in R:
     for k in R:
         if i != k:
-            MILP.addConstr(eta_3[i,k], GRB.LESS_EQUAL, 1-beta[i,k,2]) # dit gaat fout denk
+            MILP.addConstr(eta_3[i,k], GRB.LESS_EQUAL, 1-beta[i,k,2], name="C41") # dit gaat fout denk
 
 # Constraints 43 & 45
 for i in R:
@@ -284,18 +288,18 @@ for i in R:
 for i in R:
     for k in R:
         if i != k:
-            MILP.addConstr(x[i], GRB.LESS_EQUAL, x[k] + eta_3[i,k] * L, name='C45')
+            MILP.addConstr(x_prime[i], GRB.LESS_EQUAL, x_prime[k] + eta_3[i,k] * L, name='C45')
 
 #Constraint 51
-    for k in R:
-        MILP.addConstr(quicksum(s[i,k] for i in R), GRB.LESS_EQUAL, n*91-f[k], name='C51')
+for k in R:
+    MILP.addConstr(quicksum(s[i,k] for i in R if i != k), GRB.LESS_EQUAL, n*91-f[k], name='C51')
 
 #Constraint perishable and radioactive
-    for i in R:
-        for k in R:
-            for j in B:
-                if i != k:
-                    MILP.addConstr(ra[i]*per[k], GRB.LESS_EQUAL, 2 - p[i,j] - p[k,j], name='CPR')
+for i in R:
+    for k in R:
+        for j in B:
+            if i != k:
+                MILP.addConstr(ra[i]*per[k], GRB.LESS_EQUAL, 2 - p[i,j] - p[k,j], name='CPR')
 
 ###Solve the MILP
 
@@ -305,5 +309,6 @@ MILP.write('P4RMP_LP.lp')
 MILP.optimize()
 
 #Write solution file
+
 
 MILP.write('P4RMPSolution.sol')
