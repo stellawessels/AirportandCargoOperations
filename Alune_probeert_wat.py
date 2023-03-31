@@ -139,7 +139,7 @@ s = MILP.addVars(D,vtype=GRB.BINARY, lb=0, name="s")
 eta_1 = MILP.addVars(D,vtype=GRB.BINARY, lb=0, name="eta_1")
 eta_3 = MILP.addVars(D,vtype=GRB.BINARY, lb=0, name="eta_2")
 beta = MILP.addVars(G,vtype=GRB.BINARY, lb=0, name="beta")
-v = MILP.addVars(D, vtype=GRB.CONTINUOUS, lb =0, name="v") ##Has a special value that still needs to be added
+v = MILP.addVars(D, vtype=GRB.CONTINUOUS, lb =0, name="v")
 m_ik = MILP.addVars(D, vtype=GRB.BINARY, lb=0, name='m_ik')
 
 ###Create objective function
@@ -266,6 +266,13 @@ for i in R:
         if i != k:
             MILP.addConstr(p[k,j]-p[i,j], GRB.LESS_EQUAL, 1 - s[i,k], name="C36")
 
+#Constraint 38
+
+for i in R:
+    for k in R:
+        for ver in V:
+            if i != k:
+                MILP.addConstr(beta[i,k,ver], GRB.LESS_EQUAL, s[i,k], name="C38")
 
 # Constraint 39 & 41 (edited)
 
