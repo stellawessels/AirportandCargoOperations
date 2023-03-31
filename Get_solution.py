@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import pickle
+from matplotlib import pyplot as plt, patches
 
 ###Get data from files
 with open('G18/G3/B.pickle', 'rb') as handle:
@@ -113,9 +114,11 @@ for i, bin_num in enumerate(bins_used):
                 facecolor = 'gray'
                 #facecolor = colorsrandom[cr]
                 #cr+=1
-            axs[i].add_patch(
-                Rectangle((I_info_solution[valuex][0], I_info_solution[valuex][1]), I_info_solution[valuex][2],
-                          I_info_solution[valuex][3],edgecolor = 'black', facecolor=facecolor, fill=True, lw=1))
-
+            rect = Rectangle((I_info_solution[valuex][0], I_info_solution[valuex][1]), I_info_solution[valuex][2],
+                             I_info_solution[valuex][3], edgecolor='black', facecolor=facecolor, fill=True, lw=1)
+            axs[i].add_patch(rect)
+            x_center = I_info_solution[valuex][0] + I_info_solution[valuex][2] / 2
+            y_center = I_info_solution[valuex][1] + I_info_solution[valuex][3] / 2
+            axs[i].text(x_center, y_center, str(valuex), color='white', ha='center', va='center')
 plt.show()
 
