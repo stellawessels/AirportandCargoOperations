@@ -9,10 +9,10 @@ with open('G18/G3/B.pickle', 'rb') as handle:
 with open('G18/G3/R.pickle', 'rb') as handle:
     R = pickle.load(handle)
 
-
+"""
 for i in range(17,25):
     del R[i]
-
+"""
 
 ###Create model
 MILP = Model('Mixed Integer Linear Problem')
@@ -327,13 +327,13 @@ for i in R:
     for k in R:
         for j in B:
             if i != k:
-                MILP.addConstr(ra[i]*per[k], GRB.LESS_EQUAL, 2 - p[i,j] - p[k,j], name='CPR')
+                MILP.addConstr(ra[i] + per[k], GRB.LESS_EQUAL, 3 - p[i,j] - p[k,j], name='CPR')
 
 ###Solve the MILP
 
 MILP.update()
 MILP.write('P4RMP_LP.lp')
-#MILP.setParam('TimeLimit', 7200)
+MILP.setParam('TimeLimit', 3600)
 #MILP.setParam('SolutionLimit', 1)
 #MILP.setParam('MIPFocus', 1)
 MILP.optimize()
